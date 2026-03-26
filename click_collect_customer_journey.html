@@ -1,0 +1,331 @@
+
+<style>
+  @keyframes walk { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+  @keyframes walkL { 0%,100%{transform:translateY(0) scaleX(-1)} 50%{transform:translateY(-3px) scaleX(-1)} }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  @keyframes slide { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes pop { from{opacity:0;transform:scale(0.6)} to{opacity:1;transform:scale(1)} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  @keyframes scanline { from{transform:translateY(0)} to{transform:translateY(60px)} }
+  .figure { animation: walk 0.55s ease-in-out infinite; }
+  .figure-rev { animation: walkL 0.55s ease-in-out infinite; transform-origin: 50% 50%; }
+  .parcel { animation: bounce 1.2s ease-in-out infinite; }
+  .slide-in { animation: slide 0.4s ease both; }
+  .pop-in { animation: pop 0.3s cubic-bezier(.34,1.56,.64,1) both; }
+  .pulse { animation: pulse 1.5s ease-in-out infinite; }
+  .scan { animation: scanline 1.2s linear infinite; }
+  .step-btn {
+    background: none; border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md); padding: 6px 14px;
+    font-size: 13px; cursor: pointer; color: var(--color-text-primary);
+    transition: background .15s;
+  }
+  .step-btn:hover { background: var(--color-background-secondary); }
+  .step-btn:disabled { opacity: 0.35; cursor: default; }
+  .step-btn.primary { background: var(--color-text-primary); color: var(--color-background-primary); border-color: transparent; }
+  .step-btn.primary:hover { opacity: 0.88; }
+  .progress-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-border-secondary); transition: background .3s; }
+  .progress-dot.active { background: var(--color-text-primary); }
+  .progress-dot.done { background: var(--color-border-primary); }
+  .star-btn { background: none; border: none; font-size: 22px; cursor: pointer; opacity: 0.3; transition: opacity .15s, transform .15s; padding: 2px 4px; }
+  .star-btn.lit { opacity: 1; }
+  .star-btn:hover { transform: scale(1.2); opacity: 0.7; }
+  .survey-opt { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); cursor: pointer; font-size: 13px; transition: border-color .15s, background .15s; }
+  .survey-opt:hover { border-color: var(--color-border-primary); background: var(--color-background-secondary); }
+  .survey-opt.selected { border-color: var(--color-text-primary); background: var(--color-background-secondary); }
+  .survey-opt input { accent-color: var(--color-text-primary); }
+  .thank-badge { display: inline-block; background: var(--color-background-success); color: var(--color-text-success); border-radius: var(--border-radius-md); padding: 6px 16px; font-size: 13px; font-weight: 500; }
+</style>
+
+<div id="root" style="padding: 1rem 0; font-family: var(--font-sans);">
+  <div style="display:flex; gap:6px; align-items:center; justify-content:center; margin-bottom:1.5rem;" id="dots"></div>
+  <div id="scene"></div>
+  <div style="display:flex; gap:8px; justify-content:center; align-items:center; margin-top:1.25rem;" id="nav"></div>
+</div>
+
+<script>
+const steps = [
+  {
+    id: 'home',
+    label: 'Heads to store',
+    render: () => `
+      <svg width="100%" viewBox="0 0 680 220" style="display:block">
+        <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+        <!-- Ground -->
+        <line x1="30" y1="185" x2="650" y2="185" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <!-- House -->
+        <polygon points="60,120 110,80 160,120" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="70" y="120" width="80" height="65" rx="2" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="100" y="145" width="20" height="40" rx="2" fill="var(--color-border-secondary)" opacity="0.6"/>
+        <rect x="76" y="128" width="16" height="14" rx="1" fill="var(--color-background-info)" opacity="0.5"/>
+        <text x="110" y="212" text-anchor="middle" style="font-size:11px;fill:var(--color-text-secondary)">Home</text>
+        <!-- Arrow path -->
+        <path d="M220 160 Q340 100 460 160" fill="none" stroke="var(--color-border-secondary)" stroke-width="1" stroke-dasharray="6 4" marker-end="url(#a)"/>
+        <!-- Store -->
+        <rect x="490" y="100" width="140" height="85" rx="4" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="490" y="100" width="140" height="24" rx="4" fill="var(--color-background-info)" opacity="0.2"/>
+        <text x="560" y="117" text-anchor="middle" style="font-size:11px;font-weight:500;fill:var(--color-text-info)">STORE</text>
+        <rect x="530" y="148" width="22" height="37" rx="2" fill="var(--color-border-secondary)" opacity="0.5"/>
+        <rect x="500" y="130" width="20" height="18" rx="1" fill="var(--color-background-info)" opacity="0.4"/>
+        <rect x="528" y="130" width="20" height="18" rx="1" fill="var(--color-background-info)" opacity="0.4"/>
+        <rect x="556" y="130" width="20" height="18" rx="1" fill="var(--color-background-info)" opacity="0.4"/>
+        <rect x="584" y="130" width="20" height="18" rx="1" fill="var(--color-background-info)" opacity="0.4"/>
+        <text x="560" y="212" text-anchor="middle" style="font-size:11px;fill:var(--color-text-secondary)">Store</text>
+        <!-- Walking figure -->
+        <g class="figure" style="transform-origin:260px 175px">
+          <circle cx="260" cy="148" r="10" fill="var(--color-text-secondary)" opacity="0.7"/>
+          <line x1="260" y1="158" x2="260" y2="178" stroke="var(--color-text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+          <line x1="260" y1="162" x2="252" y2="172" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+          <line x1="260" y1="162" x2="268" y2="172" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+          <line x1="260" y1="178" x2="253" y2="185" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+          <line x1="260" y1="178" x2="267" y2="185" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+        </g>
+        <text x="260" y="212" text-anchor="middle" style="font-size:11px;fill:var(--color-text-secondary)">You</text>
+      </svg>
+      <p style="text-align:center;font-size:14px;color:var(--color-text-secondary);margin:0.25rem 0 0">You've received a <strong style="color:var(--color-text-primary)">click &amp; collect</strong> notification — heading to the store to pick up your parcel.</p>
+    `
+  },
+  {
+    id: 'counter',
+    label: 'At the counter',
+    render: () => `
+      <svg width="100%" viewBox="0 0 680 230" style="display:block">
+        <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+        <!-- Ground -->
+        <line x1="30" y1="195" x2="650" y2="195" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <!-- Collection counter -->
+        <rect x="220" y="130" width="260" height="65" rx="6" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="220" y="130" width="260" height="22" rx="5" fill="var(--color-background-warning)" opacity="0.18"/>
+        <text x="350" y="145" text-anchor="middle" style="font-size:11px;font-weight:500;fill:var(--color-text-warning)">COLLECTION DESK</text>
+        <!-- Scanner on counter -->
+        <rect x="300" y="152" width="30" height="18" rx="3" fill="var(--color-border-secondary)" opacity="0.5"/>
+        <rect x="308" y="155" width="14" height="3" rx="1" fill="var(--color-background-danger)" opacity="0.6"/>
+        <line x1="308" y1="162" x2="322" y2="162" stroke="var(--color-text-danger)" stroke-width="1" opacity="0.5" class="pulse"/>
+        <!-- Staff person -->
+        <circle cx="380" cy="112" r="11" fill="var(--color-text-secondary)" opacity="0.6"/>
+        <line x1="380" y1="123" x2="380" y2="143" stroke="var(--color-text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+        <text x="380" y="215" text-anchor="middle" style="font-size:11px;fill:var(--color-text-secondary)">Staff</text>
+        <!-- Customer -->
+        <g class="slide-in" style="animation-delay:0.1s">
+          <circle cx="245" cy="112" r="11" fill="var(--color-text-secondary)" opacity="0.8"/>
+          <line x1="245" y1="123" x2="245" y2="143" stroke="var(--color-text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+          <line x1="245" y1="128" x2="237" y2="138" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+          <line x1="245" y1="128" x2="253" y2="138" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+          <line x1="245" y1="143" x2="238" y2="155" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+          <line x1="245" y1="143" x2="252" y2="155" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+          <text x="245" y="215" text-anchor="middle" style="font-size:11px;fill:var(--color-text-secondary)">You</text>
+        </g>
+        <!-- QR code on phone in customer's hand -->
+        <rect x="252" y="131" width="18" height="22" rx="2" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+        <rect x="255" y="134" width="5" height="5" fill="var(--color-text-secondary)" opacity="0.5" rx="0.5"/>
+        <rect x="263" y="134" width="5" height="5" fill="var(--color-text-secondary)" opacity="0.5" rx="0.5"/>
+        <rect x="255" y="142" width="5" height="5" fill="var(--color-text-secondary)" opacity="0.5" rx="0.5"/>
+        <rect x="263" y="142" width="5" height="5" fill="var(--color-text-secondary)" opacity="0.5" rx="0.5"/>
+        <!-- Scan beam -->
+        <line x1="290" y1="158" x2="272" y2="147" stroke="var(--color-text-danger)" stroke-width="1.5" opacity="0.7" stroke-linecap="round" class="pulse"/>
+        <!-- Parcel pile on counter -->
+        <g class="slide-in" style="animation-delay:0.2s">
+          <rect x="400" y="108" width="38" height="30" rx="3" fill="var(--color-background-warning)" opacity="0.4" stroke="var(--color-border-warning)" stroke-width="0.5"/>
+          <rect x="410" y="100" width="32" height="30" rx="3" fill="var(--color-background-warning)" opacity="0.6" stroke="var(--color-border-warning)" stroke-width="0.5"/>
+          <line x1="410" y1="110" x2="442" y2="110" stroke="var(--color-text-warning)" stroke-width="0.5" opacity="0.5"/>
+          <line x1="426" y1="100" x2="426" y2="130" stroke="var(--color-text-warning)" stroke-width="0.5" opacity="0.5"/>
+        </g>
+      </svg>
+      <p style="text-align:center;font-size:14px;color:var(--color-text-secondary);margin:0.25rem 0 0">You show your <strong style="color:var(--color-text-primary)">order QR code</strong> at the collection desk. Staff scan it to find your parcel.</p>
+    `
+  },
+  {
+    id: 'collect',
+    label: 'Parcel collected',
+    render: () => `
+      <svg width="100%" viewBox="0 0 680 220" style="display:block">
+        <!-- Ground -->
+        <line x1="30" y1="195" x2="650" y2="195" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <!-- Customer with parcel -->
+        <g class="pop-in">
+          <circle cx="280" cy="118" r="12" fill="var(--color-text-secondary)" opacity="0.85"/>
+          <line x1="280" y1="130" x2="280" y2="155" stroke="var(--color-text-secondary)" stroke-width="3.5" stroke-linecap="round" opacity="0.85"/>
+          <line x1="280" y1="140" x2="266" y2="150" stroke="var(--color-text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+          <line x1="280" y1="140" x2="294" y2="150" stroke="var(--color-text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+          <line x1="280" y1="155" x2="273" y2="170" stroke="var(--color-text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+          <line x1="280" y1="155" x2="287" y2="170" stroke="var(--color-text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+        </g>
+        <!-- Parcel in arms -->
+        <g class="parcel">
+          <rect x="293" y="136" width="42" height="34" rx="4" fill="var(--color-background-warning)" opacity="0.85" stroke="var(--color-border-warning)" stroke-width="1"/>
+          <line x1="314" y1="136" x2="314" y2="170" stroke="var(--color-text-warning)" stroke-width="0.8" opacity="0.6"/>
+          <line x1="293" y1="153" x2="335" y2="153" stroke="var(--color-text-warning)" stroke-width="0.8" opacity="0.6"/>
+          <text x="314" y="149" text-anchor="middle" style="font-size:8px;font-weight:500;fill:var(--color-text-warning)">FRAGILE</text>
+        </g>
+        <!-- Big tick / success -->
+        <circle cx="420" cy="140" r="36" fill="var(--color-background-success)" opacity="0.15"/>
+        <circle cx="420" cy="140" r="36" fill="none" stroke="var(--color-text-success)" stroke-width="1.5" opacity="0.5"/>
+        <polyline points="404,140 417,153 440,127" fill="none" stroke="var(--color-text-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="420" y="215" text-anchor="middle" style="font-size:11px;fill:var(--color-text-success);font-weight:500">Collected!</text>
+        <!-- Happy sparkles -->
+        <text x="260" y="100" style="font-size:13px;fill:var(--color-text-warning);opacity:0.7" class="pop-in">✦</text>
+        <text x="350" y="95" style="font-size:10px;fill:var(--color-text-success);opacity:0.7" class="pop-in">✦</text>
+        <text x="240" y="120" style="font-size:8px;fill:var(--color-text-info);opacity:0.7" class="pop-in">✦</text>
+      </svg>
+      <p style="text-align:center;font-size:14px;color:var(--color-text-secondary);margin:0.25rem 0 0">Parcel verified and handed over. You head home with your order!</p>
+    `
+  },
+  {
+    id: 'journey',
+    label: 'Heading home',
+    render: () => `
+      <svg width="100%" viewBox="0 0 680 220" style="display:block">
+        <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+        <!-- Ground -->
+        <line x1="30" y1="190" x2="650" y2="190" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <!-- Store (left, fading) -->
+        <rect x="40" y="110" width="110" height="80" rx="4" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1" opacity="0.5"/>
+        <rect x="40" y="110" width="110" height="22" rx="4" fill="var(--color-background-info)" opacity="0.1"/>
+        <text x="95" y="125" text-anchor="middle" style="font-size:10px;fill:var(--color-text-info);opacity:0.5">STORE</text>
+        <!-- Dotted path -->
+        <path d="M160 170 Q340 120 500 165" fill="none" stroke="var(--color-border-secondary)" stroke-width="1" stroke-dasharray="6 4" marker-end="url(#a)"/>
+        <!-- Walking figure (reversed) -->
+        <g class="figure-rev" style="transform-origin:360px 170px">
+          <circle cx="360" cy="143" r="11" fill="var(--color-text-secondary)" opacity="0.8"/>
+          <line x1="360" y1="154" x2="360" y2="175" stroke="var(--color-text-secondary)" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+          <line x1="360" y1="160" x2="352" y2="170" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+          <line x1="360" y1="160" x2="368" y2="170" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+          <line x1="360" y1="175" x2="353" y2="185" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+          <line x1="360" y1="175" x2="367" y2="185" stroke="var(--color-text-secondary)" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+        </g>
+        <!-- Parcel carried -->
+        <g class="parcel">
+          <rect x="373" y="155" width="32" height="26" rx="3" fill="var(--color-background-warning)" stroke="var(--color-border-warning)" stroke-width="0.8"/>
+          <line x1="389" y1="155" x2="389" y2="181" stroke="var(--color-text-warning)" stroke-width="0.6" opacity="0.5"/>
+          <line x1="373" y1="168" x2="405" y2="168" stroke="var(--color-text-warning)" stroke-width="0.6" opacity="0.5"/>
+        </g>
+        <!-- House -->
+        <polygon points="530,110 580,75 630,110" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="540" y="110" width="80" height="80" rx="2" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="1"/>
+        <rect x="568" y="140" width="18" height="30" rx="2" fill="var(--color-border-secondary)" opacity="0.5"/>
+        <rect x="544" y="118" width="14" height="12" rx="1" fill="var(--color-background-warning)" opacity="0.5"/>
+        <text x="580" y="210" text-anchor="middle" style="font-size:11px;fill:var(--color-text-secondary)">Home</text>
+        <!-- Notification on phone -->
+        <rect x="190" y="95" width="90" height="38" rx="6" fill="var(--color-background-primary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+        <text x="235" y="108" text-anchor="middle" style="font-size:9px;font-weight:500;fill:var(--color-text-primary)">📦 Order shipped</text>
+        <text x="235" y="122" text-anchor="middle" style="font-size:8px;fill:var(--color-text-secondary)">Rate your experience →</text>
+      </svg>
+      <p style="text-align:center;font-size:14px;color:var(--color-text-secondary);margin:0.25rem 0 0">On the way home, a <strong style="color:var(--color-text-primary)">notification</strong> arrives — the store wants your feedback!</p>
+    `
+  },
+  {
+    id: 'survey',
+    label: 'Feedback survey',
+    render: () => {
+      return `
+      <div class="slide-in" style="max-width:480px;margin:0 auto;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;font-size:14px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--color-background-info);display:flex;align-items:center;justify-content:center;font-size:14px">📦</div>
+          <div>
+            <div style="font-weight:500;font-size:14px">Click &amp; Collect Feedback</div>
+            <div style="font-size:12px;color:var(--color-text-secondary)">Order #CC-48291 · Today</div>
+          </div>
+        </div>
+        <div style="border-top:0.5px solid var(--color-border-tertiary);padding-top:1rem;margin-bottom:1rem;">
+          <div style="font-size:13px;font-weight:500;margin-bottom:8px">Overall, how was your collection experience?</div>
+          <div id="stars" style="display:flex;gap:2px;margin-bottom:4px">
+            <button class="star-btn" data-v="1" onclick="rateStar(1)">★</button>
+            <button class="star-btn" data-v="2" onclick="rateStar(2)">★</button>
+            <button class="star-btn" data-v="3" onclick="rateStar(3)">★</button>
+            <button class="star-btn" data-v="4" onclick="rateStar(4)">★</button>
+            <button class="star-btn" data-v="5" onclick="rateStar(5)">★</button>
+          </div>
+          <div id="star-label" style="font-size:12px;color:var(--color-text-secondary);min-height:16px"></div>
+        </div>
+        <div style="margin-bottom:1rem">
+          <div style="font-size:13px;font-weight:500;margin-bottom:8px">How long did you wait at the desk?</div>
+          <div style="display:flex;flex-direction:column;gap:6px" id="wait-opts">
+            <label class="survey-opt"><input type="radio" name="wait" value="0"> Under 2 minutes</label>
+            <label class="survey-opt"><input type="radio" name="wait" value="1"> 2–5 minutes</label>
+            <label class="survey-opt"><input type="radio" name="wait" value="2"> 5–10 minutes</label>
+            <label class="survey-opt"><input type="radio" name="wait" value="3"> Over 10 minutes</label>
+          </div>
+        </div>
+        <div style="margin-bottom:1.25rem">
+          <div style="font-size:13px;font-weight:500;margin-bottom:8px">Any comments? <span style="font-weight:400;color:var(--color-text-secondary)">(optional)</span></div>
+          <textarea id="comment" rows="2" placeholder="Great service, easy to find the desk…" style="width:100%;box-sizing:border-box;font-size:13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:8px 10px;resize:vertical;background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-sans)"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="step-btn" onclick="skipSurvey()">Maybe later</button>
+          <button class="step-btn primary" onclick="submitSurvey()">Submit feedback</button>
+        </div>
+      </div>
+      `;
+    },
+    afterRender: () => {
+      document.querySelectorAll('#wait-opts .survey-opt').forEach(el => {
+        el.addEventListener('click', () => {
+          document.querySelectorAll('#wait-opts .survey-opt').forEach(o => o.classList.remove('selected'));
+          el.classList.add('selected');
+        });
+      });
+    }
+  },
+  {
+    id: 'thankyou',
+    label: 'Thank you!',
+    render: () => `
+      <div style="text-align:center;padding:2rem 1rem">
+        <div class="pop-in" style="font-size:48px;margin-bottom:1rem">🎉</div>
+        <div class="pop-in" style="animation-delay:0.15s;font-size:18px;font-weight:500;margin-bottom:8px">Thanks for your feedback!</div>
+        <div style="font-size:14px;color:var(--color-text-secondary);margin-bottom:1.5rem">Your response helps us improve the click &amp; collect experience for everyone.</div>
+        <span class="thank-badge pop-in" style="animation-delay:0.3s">✓ Response submitted</span>
+        <div style="margin-top:2rem;font-size:13px;color:var(--color-text-secondary)">Enjoy your parcel! 📦</div>
+      </div>
+    `
+  }
+];
+
+let current = 0;
+
+function starLabels(v) {
+  return ['','Poor','Fair','Good','Great','Excellent!'][v]||'';
+}
+
+window.rateStar = function(v) {
+  document.querySelectorAll('#stars .star-btn').forEach((b,i) => {
+    b.classList.toggle('lit', i < v);
+  });
+  const el = document.getElementById('star-label');
+  if(el) el.textContent = starLabels(v);
+  window._starVal = v;
+};
+
+window.skipSurvey = function() {
+  goTo(5);
+};
+
+window.submitSurvey = function() {
+  goTo(5);
+};
+
+function renderDots() {
+  const d = document.getElementById('dots');
+  d.innerHTML = steps.map((s,i) => `<div class="progress-dot ${i===current?'active':i<current?'done':''}" title="${s.label}"></div>`).join('') +
+    `<span style="font-size:12px;color:var(--color-text-secondary);margin-left:10px">${steps[current].label}</span>`;
+}
+
+function goTo(idx) {
+  current = idx;
+  render();
+}
+
+function render() {
+  renderDots();
+  const s = document.getElementById('scene');
+  s.innerHTML = steps[current].render();
+  if(steps[current].afterRender) setTimeout(steps[current].afterRender, 50);
+  const nav = document.getElementById('nav');
+  nav.innerHTML = `
+    <button class="step-btn" onclick="goTo(${current-1})" ${current===0?'disabled':''}>← Back</button>
+    <button class="step-btn primary" onclick="goTo(${current+1})" ${current===steps.length-1?'disabled':''}>Next →</button>
+  `;
+}
+
+render();
+</script>
